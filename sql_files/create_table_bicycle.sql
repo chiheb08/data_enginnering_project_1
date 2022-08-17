@@ -1,0 +1,1 @@
+CREATE TABLE IF NOT EXISTS bicycle_data(id varchar(150), category varchar(150), brand_name varchar(150), model_name varchar(150), price float, variations varchar(200), is_available varchar(50),DATE date);

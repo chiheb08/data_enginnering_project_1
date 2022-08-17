@@ -1,0 +1,99 @@
+version: '3.7'
+services:
+    postgres:
+        image: postgres:9.6
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+        
+    mysql : 
+        image: mysql:5.7.27
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+        volumes:
+            - ./store_files:/var/lib/mysql-files/
+            - ./mysql.cnf:/etc/mysql/mysql.cnf
+
+    webserver:
+        image: puckel/docker-airflow:1.10.9
+        restart: always
+        depends_on:
+            - postgres
+            - mysql
+        environment:
+            - INSTALL_MYSQL=y
+            - LOAD_EX=n
+            - EXECUTOR=Local
+            - AIRFLOW__SCHEDULER__STATSD_ON=True
+            - AIRFLOW__SCHEDULER__STATSD_HOST=statsd-exporter
+            - AIRFLOW__SCHEDULER__STATSD_PORT=8125
+            - AIRFLOW__SCHEDULER__STATSD_PREFIX=airflow
+            - AIRFLOW__SMTP__SMTP_HOST=smtp.gmail.com
+            - AIRFLOW__SMTP__SMTP_USER=chiheb.airflow@gmail.com
+            - AIRFLOW__SMTP__SMTP_PASSWORD=ncwrgzdpuxxvavlj
+            - AIRFLOW__SMTP__SMTP_PORT=587
+            - AIRFLOW__SMTP__SMTP_MAIL_FROM=Airflow
+
+        volumes:
+            - ./dags:/usr/local/airflow/dags
+            - ./store_files:/usr/local/airflow/store_files_airflow
+            - ./store_files/Data_sources:/usr/local/airflow/store_files_airflow/Data_sources
+            - ./store_files/Row_data:/usr/local/airflow/store_files_airflow/Row_data
+            - ./store_files/Image_data/Images:/usr/local/airflow/store_files_airflow/Image_data/Images
+            - ./store_files/Image_data/Metadata:/usr/local/airflow/store_files_airflow/Image_data/Metadata
+            - ./store_files/Reports:/usr/local/airflow/store_files_airflow/Reports
+            - ./store_files/Concat_data:/usr/local/airflow/store_files_airflow/Concat_data
+            - ./store_files/Cleansed_data:/usr/local/airflow/store_files_airflow/Cleansed_data
+            - ./store_files/Dashboards:/usr/local/airflow/store_files_airflow/Dashboards           
+            - ./store_files/pre_processed_data:/usr/local/airflow/store_files_airflow/pre_processed_data
+            - ./store_files/TimeSeries_Data:/usr/local/airflow/store_files_airflow/TimeSeries_Data
+            - ./sql_files:/usr/local/airflow/sql_files
+            - ./store_files/App:/usr/local/airflow/store_files_airflow/App
+            - ./packages/requirements.txt:/requirements.txt
+            # - ./plugins:/usr/local/airflow/plugins
+        ports:
+            - "8080:8080"
+        command: webserver
+        healthcheck:
+            test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+            interval: 30s
+            timeout: 30s
+            retries: 3
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        
+    statsd-exporter:
+     image: prom/statsd-exporter
+     container_name: airflow-statsd-exporter
+     volumes:
+            - ./config/statsd.yml:/etc/statsd/statsd.yml
+     command: "--statsd.listen-udp=:8125 --web.listen-address=:9102 --statsd.mapping-config=/etc/statsd/statsd.yml"
+     ports:
+        - 9102:9102 #Prometheus scrape data from this port
+        - 8125:8125/udp #ingest data from airflow to statsd
+
+    prometheus:
+        image: prom/prometheus
+        container_name: airflow-prometheus
+        user: "0"
+        ports:
+            - 9090:9090
+        volumes:
+            - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+            - ./prometheus/volume:/prometheus
+    grafana:
+        image: grafana/grafana:7.1.5
+        container_name: airflow-grafana
+        environment:
+            GF_SECURITY_ADMIN_USER: admin
+            GF_SECURITY_ADMIN_PASSWORD: password
+            GF_PATHS_PROVISIONING: /grafana/provisioning
+        ports:
+            - 3000:3000
+        volumes:
+            - ./grafana/volume/data:/grafana
+            - ./grafana/volume/datasources:/grafana/datasources
+            - ./grafana/volume/dashboards:/grafana/dashboards
+            - ./grafana/volume/provisioning:/grafana/provisioning
+
