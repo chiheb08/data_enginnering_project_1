@@ -1,3 +1,5 @@
+
+
 # docker-airflow
 [![CI status](https://github.com/puckel/docker-airflow/workflows/CI/badge.svg?branch=master)](https://github.com/puckel/docker-airflow/actions?query=workflow%3ACI+branch%3Amaster+event%3Apush)
 [![Docker Build status](https://img.shields.io/docker/build/puckel/docker-airflow?style=plastic)](https://hub.docker.com/r/puckel/docker-airflow/tags?ordering=last_updated)
@@ -52,7 +54,7 @@ For **CeleryExecutor** :
 
 NB : If you want to have DAGs example loaded (default=False), you've to set the following environment variable :
 
-`LOAD_EX=n`
+`LOAD_EX=y`
 
     docker run -d -p 8080:8080 -e LOAD_EX=y puckel/docker-airflow
 
